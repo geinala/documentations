@@ -60,8 +60,6 @@ const config: Config = {
         },
       },
     ],
-    // --- PERBAIKAN UTAMA DI SINI ---
-    // Kita membuat plugin inline untuk menyuntikkan konfigurasi Webpack
     () => ({
       name: "custom-webpack-config",
       configureWebpack() {
@@ -73,6 +71,9 @@ const config: Config = {
               path: require.resolve("path-browserify"),
               stream: require.resolve("stream-browserify"),
               zlib: require.resolve("browserify-zlib"),
+              bufferutil: false,
+              "utf-8-validate": false,
+              canvas: false,
             },
           },
           module: {

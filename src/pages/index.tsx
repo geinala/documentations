@@ -20,15 +20,12 @@ function HomepageHeader() {
         <div className={styles.buttons}>
           <Link
             className="button button--secondary button--lg"
-            to="/docs/intro"
+            to="/docs/api/health-check" /// TODO: Change to your desired doc page
           >
             Lihat Dokumentasi API ⏱️
           </Link>
           <span style={{ margin: "0 10px" }}></span>
-          <Link
-            className="button button--secondary button--lg"
-            to="/docs/events/overview"
-          >
+          <Link className="button button--secondary button--lg" to="/events">
             Lihat Event Catalog 🚀
           </Link>
         </div>
