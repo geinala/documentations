@@ -1,12 +1,12 @@
 ---
-id: health-check
-title: "Health check"
-description: "Health check"
-sidebar_label: "Health check"
+id: membuka-blokir-user
+title: "Membuka blokir user"
+description: "Mengaktifkan kembali user yang sebelumnya diblokir"
+sidebar_label: "Membuka blokir user"
 hide_title: true
 hide_table_of_contents: true
-api: eJxlkLFuwzAMRH9FuFlI3I7asjVTg7qdDA+KzUBCbUmRaKOGoX8vZHdo04kAebx35IpIKXiXKEGteK6qUnpKXbSBrXdQqCnOFIVNwpAe2CzIWT5oXraJ6Ax1n5AYiY3voRB8YkgEzQYKx90AEtbdfCGx5YGg8OYntrdF1HacBl1MxelyhsRMMe2Ip0N1qPAIPl3OovfdNJLjbQ9ZbtRRuwJweqT/+f54rOAlFBHTFx/DoO1mMsWhzPboDX6itxKm3KQarOtVJ/qIQ86lfZ8oLlBNKzHraPW1HNa0+dc3Lq/1O3L+BlH0ffw=
-sidebar_class_name: "post api-method"
+api: eJydkT1rwzAQhv+KeGeRpKu3QjMEWij9mEyGc31JVEsnVzqVGuP/XuQsJWMncYd097yPZiidM5oW75lTxtGi5/yR3KguCho8sZxpUHcaSMzAoSPvTMmczERyNpk79iXIRKZ3nY+DS7AIrJfYo0HPnpVhMZJe0GBbX+btXI9Dv2w7Elg4OUU0M9SpZzR4iUXdaTKvLhRPFcTcPx9g8c0pX7HuNrvNDrew988HU0TLYAIJfXJgMXkdkp3pSUwc1YVapKJsBpaeEpFgsRhj1kBSOYQCr9FDVwYy11hr6NuNMz6iKIv+15ROY12l/KPb0ZNbUUrydfTVWYvVGSyaqzVYVG1Hi0vMWi/Mc0eZ35Nfltr+KpwmNO3R4puSo65KbY/Ln3952D/u3/ZYll8yjrFu
+sidebar_class_name: "delete api-method"
 info_path: docs/api/routify-simulation-api
 custom_edit_url: null
 ---
@@ -23,16 +23,16 @@ import Translate from "@docusaurus/Translate";
 <Heading
   as={"h1"}
   className={"openapi__heading"}
-  children={"Health check"}
+  children={"Membuka blokir user"}
 ></Heading>
 
 <MethodEndpoint
-  method={"post"}
-  path={"/health"}
+  method={"delete"}
+  path={"/users/{userId}/ban"}
   context={"endpoint"}
 ></MethodEndpoint>
 
-Health check
+Mengaktifkan kembali user yang sebelumnya diblokir
 
 <ParamsDetails parameters={undefined}></ParamsDetails>
 
@@ -41,5 +41,5 @@ Health check
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{ "200": { description: "Server is healthy" } }}
+  responses={undefined}
 ></StatusCodes>

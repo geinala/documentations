@@ -20,7 +20,7 @@ function HomepageHeader() {
         <div className={styles.buttons}>
           <Link
             className="button button--secondary button--lg"
-            to="/docs/api/health-check" /// TODO: Change to your desired doc page
+            to="/docs/api/routify-simulation-api"
           >
             Lihat Dokumentasi API
           </Link>
