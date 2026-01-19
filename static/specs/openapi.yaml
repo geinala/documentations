@@ -2,11 +2,141 @@ openapi: 3.0.0
 info:
   title: Routify Simulation API
   version: 1.0.0
-  description: API documentation
+  description: API untuk manajemen simulasi dan optimasi rute kendaraan
+
+tags:
+  - name: Users
+    description: Manajemen user dan kepemilikan simulasi
+
+  - name: Simulations
+    description: Lifecycle simulasi, konfigurasi, eksekusi, dan hasil
+
 paths:
-  /health:
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Mengambil daftar seluruh user
+      description: Endpoint untuk mengambil data user yang tersimpan di sistem
+
+  /users/onboarding:
     post:
-      summary: Health check
-      responses:
-        "200":
-          description: Server is healthy
+      tags:
+        - Users
+      summary: Proses onboarding user
+      description: Digunakan setelah autentikasi awal untuk melengkapi data user di database lokal
+
+  /users/invite:
+    post:
+      tags:
+        - Users
+      summary: Mengundang user baru
+      description: Mengirim undangan kepada user baru untuk bergabung ke sistem
+
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Mengambil detail user
+      description: Mengambil informasi detail dari satu user
+
+    patch:
+      tags:
+        - Users
+      summary: Memperbarui data user
+      description: Memperbarui informasi user yang tersimpan di sistem
+
+  /users/{userId}/ban:
+    post:
+      tags:
+        - Users
+      summary: Memblokir user
+      description: Menandai user sebagai diblokir sehingga tidak dapat membuat atau menjalankan simulasi
+
+    delete:
+      tags:
+        - Users
+      summary: Membuka blokir user
+      description: Mengaktifkan kembali user yang sebelumnya diblokir
+
+  /simulations:
+    post:
+      tags:
+        - Simulations
+      summary: Membuat simulasi baru
+      description: Membuat simulasi baru yang dimiliki oleh user
+
+    get:
+      tags:
+        - Simulations
+      summary: Mengambil daftar simulasi
+      description: Mengambil seluruh simulasi yang dimiliki atau dapat diakses oleh user
+
+  /simulations/{simulationId}:
+    get:
+      tags:
+        - Simulations
+      summary: Mengambil detail simulasi
+      description: Mengambil informasi lengkap sebuah simulasi
+
+    delete:
+      tags:
+        - Simulations
+      summary: Menghapus simulasi
+      description: Menghapus atau menonaktifkan simulasi
+
+  /simulations/{simulationId}/data:
+    post:
+      tags:
+        - Simulations
+      summary: Upload data simulasi
+      description: Mengunggah data mentah simulasi seperti file CSV yang berisi node, permintaan, dan informasi lainnya
+
+  /simulations/{simulationId}/config:
+    put:
+      tags:
+        - Simulations
+      summary: Mengatur konfigurasi simulasi
+      description: Mengatur parameter dan constraint simulasi seperti jumlah kendaraan dan kapasitas maksimum
+
+  /simulations/{simulationId}/start:
+    post:
+      tags:
+        - Simulations
+      summary: Menjalankan simulasi
+      description: Memulai proses optimasi dengan memicu worker dan solver eksternal
+
+  /simulations/{simulationId}/status:
+    get:
+      tags:
+        - Simulations
+      summary: Mengambil status simulasi
+      description: Mengambil status terkini simulasi seperti idle, running, atau selesai
+
+  /simulations/{simulationId}/summary:
+    get:
+      tags:
+        - Simulations
+      summary: Ringkasan hasil simulasi
+      description: Mengambil ringkasan hasil simulasi secara keseluruhan
+
+  /simulations/{simulationId}/vehicles:
+    get:
+      tags:
+        - Simulations
+      summary: Daftar kendaraan simulasi
+      description: Mengambil daftar kendaraan yang digunakan dalam simulasi
+
+  /simulations/{simulationId}/routes:
+    get:
+      tags:
+        - Simulations
+      summary: Rute kendaraan hasil simulasi
+      description: Mengambil rute kendaraan hasil optimasi
+
+  /simulations/{simulationId}/results:
+    get:
+      tags:
+        - Simulations
+      summary: Hasil lengkap simulasi
+      description: Mengambil hasil lengkap dari proses optimasi simulasi
