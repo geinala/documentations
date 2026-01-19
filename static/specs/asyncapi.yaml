@@ -1,0 +1,499 @@
+asyncapi: "2.6.0"
+
+info:
+  title: Routify Event API
+  version: "1.2.0"
+  description: |
+    Event-driven architecture for Dynamic Vehicle Routing Problem (DVRP) System.
+    Uses Redis Streams for communication between Next.js (Producer), Node.js CSV Worker, and FastAPI Optimization Engine.
+  contact:
+    name: Developer Team
+    email: dev@routify.app
+
+tags:
+  - name: CSV Imports
+    description: Events related to uploading and parsing bulk datasets
+  - name: Optimizations
+    description: Events related to the VRP algorithm calculation process
+  - name: Vehicles
+    description: Real-time telemetry and status updates from vehicles in the field
+  - name: Logs
+    description: Operational and audit log events for tracking system activity
+
+servers:
+  redis:
+    url: redis://localhost:6379
+    protocol: redis
+    description: Local Redis Streams broker
+
+defaultContentType: application/json
+
+channels:
+  # ==========================================
+  # GROUP 1: CSV DATA INGESTION (Node.js Worker)
+  # ==========================================
+  csv.uploaded:
+    description: Trigger emitted by Next.js when a user uploads a new CSV file
+    publish:
+      tags:
+        - name: CSV Imports
+      summary: New CSV file uploaded
+      message:
+        name: CsvUploaded
+        payload:
+          type: object
+          required:
+            - upload_id
+            - file_name
+            - file_location
+            - uploaded_by
+          properties:
+            upload_id:
+              type: string
+              description: Unique ID for this upload batch
+              example: "UPLOAD-20240120-001"
+            file_name:
+              type: string
+              description: Original filename
+              example: "malang_orders_january.csv"
+            file_location:
+              type: string
+              description: URI/Path where the worker can download the file (S3/Local)
+              example: "s3://routify-bucket/uploads/2024/01/malang_orders.csv"
+            file_size_bytes:
+              type: integer
+              description: Size of file in bytes
+              example: 1048576
+            uploaded_by:
+              type: string
+              description: User ID
+              example: "USER-555"
+            uploaded_at:
+              type: string
+              format: date-time
+
+  csv.processing.progress:
+    description: Periodic update emitted by Worker during CSV parsing
+    subscribe:
+      tags:
+        - name: CSV Imports
+      summary: CSV parsing progress
+      message:
+        name: CsvProcessingProgress
+        payload:
+          type: object
+          properties:
+            upload_id:
+              type: string
+              example: "UPLOAD-20240120-001"
+            percent_complete:
+              type: integer
+              minimum: 0
+              maximum: 100
+              example: 45
+            records_processed:
+              type: integer
+              description: Number of rows successfully parsed so far
+              example: 500
+            status:
+              type: string
+              enum: ["pending", "parsing", "validating", "saving"]
+              example: "parsing"
+
+  csv.processing.completed:
+    description: Event emitted when Worker successfully saves all data to DB
+    subscribe:
+      tags:
+        - name: CSV Imports
+      summary: CSV processing finished successfully
+      message:
+        name: CsvProcessingCompleted
+        payload:
+          type: object
+          required:
+            - upload_id
+            - summary
+          properties:
+            upload_id:
+              type: string
+            summary:
+              type: object
+              properties:
+                total_rows:
+                  type: integer
+                  example: 1000
+                valid_rows:
+                  type: integer
+                  example: 998
+                invalid_rows:
+                  type: integer
+                  example: 2
+            completed_at:
+              type: string
+              format: date-time
+
+  csv.processing.failed:
+    description: Event emitted if Worker encounters a critical error (e.g., bad format)
+    subscribe:
+      tags:
+        - name: CSV Imports
+      summary: CSV processing failed
+      message:
+        name: CsvProcessingFailed
+        payload:
+          type: object
+          properties:
+            upload_id:
+              type: string
+            error_code:
+              type: string
+              example: "ERR_CSV_FORMAT"
+            error_message:
+              type: string
+              example: "Missing required column 'latitude' at row 1"
+            failed_at:
+              type: string
+              format: date-time
+
+  # ==========================================
+  # GROUP 2: OPTIMIZATION ENGINE (FastAPI Worker)
+  # ==========================================
+
+  optimization.requested:
+    description: Trigger emitted by Next.js when user clicks "Start Optimization"
+    publish:
+      tags:
+        - name: Optimizations
+      summary: Request to start VRP calculation
+      message:
+        name: OptimizationRequested
+        payload:
+          type: object
+          required:
+            - request_id
+            - simulation_id
+            - parameters
+            - constraints
+          properties:
+            request_id:
+              type: string
+              description: Trace ID for this run
+              example: "REQ-OPT-999"
+            simulation_id:
+              type: string
+              description: Database ID for the simulation. Worker uses this to fetch dataset.
+              example: "SIM-20240120-XYZ"
+            parameters:
+              type: object
+              description: Algorithm execution settings
+              properties:
+                time_limit_seconds:
+                  type: integer
+                  description: Maximum runtime in seconds
+                  default: 60
+                  example: 300
+
+            # --- UPDATED CONSTRAINTS ---
+            constraints:
+              type: object
+              description: Physical limitations and vehicle specifications
+              required:
+                - vehicles
+              properties:
+                vehicles:
+                  type: array
+                  description: List of available vehicles with individual capacities
+                  minItems: 1
+                  items:
+                    type: object
+                    required:
+                      - vehicle_id
+                      - max_weight_capacity
+                    properties:
+                      vehicle_id:
+                        type: string
+                        example: "VEH-001"
+                      vehicle_name:
+                        type: string
+                        example: "Truck A"
+                      max_weight_capacity:
+                        type: number
+                        description: Max weight this vehicle can carry (kg)
+                        example: 1500.0
+
+            requested_at:
+              type: string
+              format: date-time
+
+  optimization.started:
+    description: Event emitted by FastAPI when it starts processing the job
+    subscribe:
+      tags:
+        - name: Optimizations
+      summary: Optimization started
+      message:
+        name: OptimizationStarted
+        payload:
+          type: object
+          properties:
+            request_id:
+              type: string
+            worker_id:
+              type: string
+              example: "fastapi-worker-01"
+            started_at:
+              type: string
+              format: date-time
+
+  optimization.progress:
+    description: Real-time progress from the metaheuristic algorithm
+    subscribe:
+      tags:
+        - name: Optimizations
+      summary: Algorithm iteration update
+      message:
+        name: OptimizationProgress
+        payload:
+          type: object
+          properties:
+            request_id:
+              type: string
+            iteration:
+              type: integer
+              example: 150
+            current_cost:
+              type: number
+              description: Current total distance/cost
+              example: 1250.5
+            best_cost:
+              type: number
+              description: Best cost found so far
+              example: 1200.0
+            time_elapsed_ms:
+              type: integer
+              example: 5000
+
+  optimization.completed:
+    description: Event emitted when optimization finishes successfully
+    subscribe:
+      tags:
+        - name: Optimizations
+      summary: Optimization completed (Return)
+      message:
+        name: OptimizationCompleted
+        payload:
+          type: object
+          required:
+            - request_id
+            - status
+            - simulation_id
+          properties:
+            request_id:
+              type: string
+            simulation_id:
+              type: string
+            status:
+              type: string
+              enum: ["optimal", "feasible", "time_limit_reached"]
+              example: "time_limit_reached"
+            metrics:
+              type: object
+              properties:
+                final_distance:
+                  type: number
+                  example: 1150.2
+                total_time_ms:
+                  type: integer
+                  example: 60000
+                vehicles_used:
+                  type: integer
+                  example: 4
+            result_summary:
+              type: string
+              description: Message or URL to full result (if not saving to DB directly)
+              example: "Results saved to DB for Simulation ID SIM-20240120-XYZ"
+            completed_at:
+              type: string
+              format: date-time
+
+  optimization.failed:
+    description: Event emitted if the algorithm crashes or fails
+    subscribe:
+      tags:
+        - name: Optimizations
+      summary: Optimization failed
+      message:
+        name: OptimizationFailed
+        payload:
+          type: object
+          properties:
+            request_id:
+              type: string
+            error_code:
+              type: string
+              enum: ["INFEASIBLE", "DB_ERROR", "ALGORITHM_ERROR"]
+            error_message:
+              type: string
+            failed_at:
+              type: string
+              format: date-time
+
+  # ----------------------------------------------------------------
+  # 3. VEHICLES (Real-time Telemetry & State)
+  # ----------------------------------------------------------------
+  vehicle.location.updated:
+    description: High-frequency stream of GPS coordinates updates. Used for map tracking and detecting delays.
+    publish:
+      tags:
+        - name: Vehicles
+      summary: GPS Location update
+      message:
+        name: VehicleLocationUpdate
+        payload:
+          type: object
+          required:
+            - vehicle_id
+            - location
+            - timestamp
+          properties:
+            vehicle_id:
+              type: string
+              example: "TRUCK-001"
+            location:
+              type: object
+              properties:
+                lat:
+                  type: number
+                  format: double
+                  example: -7.966620
+                lng:
+                  type: number
+                  format: double
+                  example: 112.632629
+            speed_kmh:
+              type: number
+              description: Current speed. Useful for the algorithm to detect traffic congestion dynamically.
+              example: 45.5
+            timestamp:
+              type: string
+              format: date-time
+              description: Precise time when GPS signal was captured (not when event was published)
+
+  # ----------------------------------------------------------------
+  # 4. LOGS (Operational & Audit Logs)
+  # ----------------------------------------------------------------
+
+  log.vehicle.node.reached:
+    description: Log event when a vehicle arrives at a specific stop (Customer or Depot). Used for attendance and timeliness verification.
+    publish:
+      tags:
+        - name: Logs
+      summary: Vehicle reached a node
+      message:
+        name: LogNodeReached
+        payload:
+          type: object
+          required:
+            - log_id
+            - vehicle_id
+            - node_id
+            - arrival_time
+          properties:
+            log_id:
+              type: string
+              example: "LOG-NODE-88123"
+            vehicle_id:
+              type: string
+              example: "TRUCK-001"
+            node_id:
+              type: string
+              description: ID of the customer or depot visited
+              example: "CUST-A-101"
+            node_type:
+              type: string
+              enum: ["depot", "customer", "waypoint"]
+            arrival_time:
+              type: string
+              format: date-time
+              description: Actual time of arrival
+            planned_arrival_time:
+              type: string
+              format: date-time
+              description: Scheduled time from the optimization engine. Null if unplanned.
+            deviation_seconds:
+              type: integer
+              description: Difference between actual and planned (Positive = Late, Negative = Early)
+              example: 300
+
+  log.vehicle.segment.started:
+    description: Log event indicating the vehicle has finished service at previous node and started driving to the next.
+    publish:
+      tags:
+        - name: Logs
+      summary: Segment travel started
+      message:
+        name: LogSegmentStarted
+        payload:
+          type: object
+          properties:
+            log_id:
+              type: string
+            vehicle_id:
+              type: string
+            from_node_id:
+              type: string
+              description: Origin node
+            to_node_id:
+              type: string
+              description: Destination node
+            started_at:
+              type: string
+              format: date-time
+            estimated_duration_seconds:
+              type: integer
+              description: Expected travel time based on OSRM/Google Maps at that moment
+
+  log.vehicle.segment.completed:
+    description: Log event when travel between two nodes is finished. Crucial for calibrating travel speeds.
+    publish:
+      tags:
+        - name: Logs
+      summary: Segment travel completed
+      message:
+        name: LogSegmentCompleted
+        payload:
+          type: object
+          required:
+            - log_id
+            - vehicle_id
+            - from_node_id
+            - to_node_id
+            - actual_duration_seconds
+          properties:
+            log_id:
+              type: string
+            vehicle_id:
+              type: string
+            from_node_id:
+              type: string
+            to_node_id:
+              type: string
+            distance_traveled_meters:
+              type: integer
+              description: Actual distance covered (telemetry accumulation)
+              example: 5400
+            actual_duration_seconds:
+              type: integer
+              description: Real world travel time
+              example: 900
+            planned_duration_seconds:
+              type: integer
+              description: What the algorithm predicted
+              example: 850
+            average_speed_kmh:
+              type: number
+              description: Derived from distance / duration
+              example: 35.5
+            completed_at:
+              type: string
+              format: date-time

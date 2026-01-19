@@ -5,7 +5,7 @@ info:
   description: API documentation
 paths:
   /health:
-    get:
+    post:
       summary: Health check
       responses:
         "200":

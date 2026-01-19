@@ -51,7 +51,7 @@ const config: Config = {
         docsPluginId: "classic",
         config: {
           myservice: {
-            specPath: "specs/openapi.yaml",
+            specPath: "./static/specs/openapi.yaml",
             outputDir: "docs/api",
             sidebarOptions: {
               groupPathsBy: "tag",
@@ -94,7 +94,8 @@ const config: Config = {
   themeConfig: {
     image: "img/docusaurus-social-card.jpg",
     colorMode: {
-      respectPrefersColorScheme: true,
+      defaultMode: "light",
+      disableSwitch: true,
     },
     navbar: {
       title: "Documentation",
@@ -127,7 +128,6 @@ const config: Config = {
     },
     prism: {
       theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
     },
   } satisfies Preset.ThemeConfig,
 };
