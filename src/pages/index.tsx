@@ -22,11 +22,11 @@ function HomepageHeader() {
             className="button button--secondary button--lg"
             to="/docs/api/health-check" /// TODO: Change to your desired doc page
           >
-            Lihat Dokumentasi API ⏱️
+            Lihat Dokumentasi API
           </Link>
           <span style={{ margin: "0 10px" }}></span>
           <Link className="button button--secondary button--lg" to="/events">
-            Lihat Event Catalog 🚀
+            Lihat Event Catalog
           </Link>
         </div>
       </div>
